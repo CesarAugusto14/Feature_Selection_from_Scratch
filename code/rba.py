@@ -17,6 +17,7 @@ class relief(object):
 
     NOTE: we should be using the distance metric from the paper, but I guess the norm will do it for now.
     NOTE 2: Are there an explanation of why the distance is euclidean or so? Which is the best distance? How the metric affects the results?
+    NOTE 3: It would be more computationally efficient to use a distance matrix. Maybe we can add this as an option in the future.
     """
     def __init__(self, n_features_to_keep=2):
         self.n_features_to_keep = n_features_to_keep
@@ -39,7 +40,13 @@ class relief(object):
             hit = self.get_nearest_hits(x_i, y_i)
             miss = self.get_nearest_miss(x_i, y_i)
             # Update the weights: 
-            self.weights -= (x_i - hit)**2/self.N - (x_i - miss)**2./self.N
+            self.weights -= ((x_i - hit)**2 - (x_i - miss)**2)/self.N
+            # print('Instance: ')
+            # print(x_i)
+            # print('Hit: ')
+            # print(hit)
+            # print('Miss: ')
+            # print(miss)
         # Get the indices of the features to keep:
         self.indices = np.argsort(self.weights)[::-1][:self.n_features_to_keep]
         # Resulting dataset is:
@@ -48,6 +55,8 @@ class relief(object):
     def get_nearest_hits(self, x_i, y_i):
         # Get the nearest hits: 
         hits = self.X[self.y == y_i]
+        # Find x_i in the hits:
+        hits = np.delete(hits, np.where((hits == x_i).all(axis=1))[0], axis=0)
         # Get the distance to the current instance: 
         distances = np.linalg.norm(hits - x_i, axis=1, ord=1)
         # Get the nearest hit: 
@@ -57,6 +66,7 @@ class relief(object):
     def get_nearest_miss(self, x_i, y_i):
         # Get the nearest miss: 
         miss = self.X[self.y != y_i]
+        
         # Get the distance to the current instance: 
         distances = np.linalg.norm(miss - x_i, axis=1, ord=1)
         # Get the nearest miss: 
@@ -69,17 +79,33 @@ class relief_f(object):
     The following code is a python implementation of the relief-F algorithm, which is an 
     extension of the relief algorithm. 
 
-    The main difference, is that relief-F uses more than one nearest hit and miss to
-    compute the weights.
+    The main difference, is that relief-F uses more than k nearest hits and k nearest misses, 
+    so we will need to compute slightly different the weights. 
 
-    n_features_to_keep: Number of features to keep. (self explanatory, tbh)
-    X: The feature matrix, this shall be a numpy array (NOTE: add an assertion for this, and if not, convert it to a numpy array).
-    y: The target vector, this shall be a numpy array (NOTE: add an assertion for this, and if not, convert it to a numpy array).
-    k: Number of nearest hits and misses to use.
+    To follow this implementation, please refer to the paper: 
+    https://www.sciencedirect.com/science/article/pii/S1532046418301400 
+    Relief-based feature selection: Introduction and review, by Ryan J. Urbanowicz, 2018. 
+    Journal of Biomedical Informatics, Volume 85, 2018, Pages 189-203. 
+    https://doi.org/10.1016/j.jbi.2018.07.014 
+    Algorithm 1.
 
-    
+    And Benchmarking relief-based feature selection methods for bioinformatics data mining, by
+    Ryan J. Urbanowicz, 2018. 
+    https://www.sciencedirect.com/science/article/pii/S1532046418301412?via%3Dihub
+    Journal of Biomedical Informatics, Volume 85, 2018, Pages 168-188.
+    https://doi.org/10.1016/j.jbi.2018.07.015
+    Algorithm 2. 
     """
     def __init__(self, n_features_to_keep=2, k=5):
+        """
+        Inputs: 
+        n_features_to_keep: Number of features to keep. (self explanatory, tbh)
+        k: Number of nearest hits and misses to use.
+
+        k will be the number of nearest hits AND the number of nearest misses, 
+        this means we are NOT using the number of nearest neighbors, where
+        k_nearest_neighbors = 2*k.
+        """
         self.n_features_to_keep = n_features_to_keep
         self.k = k
 
