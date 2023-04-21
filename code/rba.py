@@ -1,5 +1,7 @@
 import numpy as np
-
+# I will be importing pdist and squareform just like we did in Multivariate Statistical Analysis, 
+# I hope in the near future to change this!
+from scipy.spatial.distance import pdist, squareform
 class relief(object):
     """author: cesar augusto sanchez-villalobos @cesarasa.
 
@@ -41,6 +43,8 @@ class relief(object):
             miss = self.get_nearest_miss(x_i, y_i)
             # Update the weights: 
             self.weights -= ((x_i - hit)**2 - (x_i - miss)**2)/self.N
+            print(self.weights)
+            print(((x_i - hit)**2))
             # print('Instance: ')
             # print(x_i)
             # print('Hit: ')
@@ -110,6 +114,60 @@ class relief_f(object):
         self.k = k
 
     def fit(self, X, y):
-        pass
+        self.X = X
+        n, p = self.X.shape
+        self.y = y
+        # Get the classes:
+        classes = np.unique(y)
+        # Compute all the distances:
+        distances = self.compute_distances()
+        # Initialize the weights: 
+        self.weights = np.zeros(p)
+        for i in range(n):
+            # Get the current instance: 
+            x_i = X[i, :].reshape(1, -1)
+            y_i = y[i]
+            # Get the nearest hits and misses: 
+            hits = self.get_nearest_hits(x_i, y_i, distances, k=self.k, i = i).reshape(self.k, -1)
+            misses = self.get_nearest_miss(x_i, y_i, distances, k=self.k, i = i).reshape(self.k, -1)
+            # Update the weights:
+            # This works if we have only one hits and one miss: self.weights -= np.sum((x_i - hits)**2, axis=0) - np.sum((x_i - misses)**2, axis=0)
+            # This works if we have more than one hits and misses:
+            for j in range(p):
+                for k in range(self.k):
+                    avg_hit = np.sum(hits[:, j])/self.k
+                    print(avg_hit)
+                    break
+                    avg_miss = np.sum(misses[:, j])/self.k
+                #self.weights[j] -= (x_i[ j] - avg_hit)**2 - (x_i[ j] - avg_miss)**2
+                break
+        # Get the indices of the features to keep:
+        self.indices = np.argsort(self.weights)[::-1][:self.n_features_to_keep]
+        # Resulting dataset is:
+        self.X_new = self.X[:, self.indices]
+
+    
+    def compute_distances(self):
+        return squareform(pdist(self.X, 'cityblock'))
+    
+    def get_nearest_hits(self, x_i, y_i, distances, k, i):
+        hits = self.X[self.y == y_i]
+        distance = distances[i, :]
+        distance = distance[self.y == y_i]
+        hits = np.delete(hits, np.where((hits == x_i).all(axis=1))[0], axis=0)
+        distance = distance[distance != 0]
+        hits = hits[np.argsort(distance)]
+        nearest_hits = hits[:k]
+        return nearest_hits
+    
+    def get_nearest_miss(self, x_i, y_i, distances, k, i):
+        miss = self.X[self.y != y_i]
+        distance = distances[i, :]
+        distance = distance[self.y != y_i]
+        miss = np.delete(miss, np.where((miss == x_i).all(axis=1))[0], axis=0)
+        distance = distance[distance != 0]
+        miss = miss[np.argsort(distance)]
+        nearest_miss = miss[:k]
+        return nearest_miss
     
 

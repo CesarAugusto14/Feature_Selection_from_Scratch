@@ -26,12 +26,12 @@ X = np.array([[1, 0, 1],
 N,p = X.shape
 y = np.array([1, 1, 1, 1, 0, 0, 0, 0])
 
-r = relief(n_features_to_keep=2)
+r = relief_f(n_features_to_keep=2, k = 3)
 r.fit(X, y)
 X_new = r.X_new
 
 
-print(r.weights*N)
+# print(r.weights*N)
 # Plot importance of features
 plt.figure()
 plt.bar(range(len(r.weights)), r.weights*N, color='peru', ec='k', lw=2, align='center')
