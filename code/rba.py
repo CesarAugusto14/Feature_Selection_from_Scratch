@@ -1,3 +1,4 @@
+"""AJA CONOETUMADRE"""
 import numpy as np
 # I will be importing pdist and squareform just like we did in Multivariate Statistical Analysis, 
 # I hope in the near future to change this!
@@ -122,29 +123,26 @@ class relief_f(object):
         # Compute all the distances:
         distances = self.compute_distances()
         # Initialize the weights: 
-        self.weights = np.zeros(p)
+        self.weights = np.zeros(p).reshape(1,-1)
         for i in range(n):
-            # Get the current instance: 
+            # Get the current instance:
             x_i = X[i, :].reshape(1, -1)
             y_i = y[i]
-            # Get the nearest hits and misses: 
+            # Get the nearest hits and misses:            
             hits = self.get_nearest_hits(x_i, y_i, distances, k=self.k, i = i).reshape(self.k, -1)
             misses = self.get_nearest_miss(x_i, y_i, distances, k=self.k, i = i).reshape(self.k, -1)
+            hit_dis = (x_i - hits)**2
+            avg_hits = np.mean(hit_dis, axis=0)/self.k
+            miss_dis = (x_i - misses)**2
+            avg_misses = np.mean(miss_dis, axis=0)/self.k
             # Update the weights:
-            # This works if we have only one hits and one miss: self.weights -= np.sum((x_i - hits)**2, axis=0) - np.sum((x_i - misses)**2, axis=0)
-            # This works if we have more than one hits and misses:
-            for j in range(p):
-                for k in range(self.k):
-                    avg_hit = np.sum(hits[:, j])/self.k
-                    print(avg_hit)
-                    break
-                    avg_miss = np.sum(misses[:, j])/self.k
-                #self.weights[j] -= (x_i[ j] - avg_hit)**2 - (x_i[ j] - avg_miss)**2
-                break
+            self.weights -= (avg_hits - avg_misses)/n
         # Get the indices of the features to keep:
         self.indices = np.argsort(self.weights)[::-1][:self.n_features_to_keep]
         # Resulting dataset is:
         self.X_new = self.X[:, self.indices]
+
+        # NOTE: Now it works!
 
     
     def compute_distances(self):
